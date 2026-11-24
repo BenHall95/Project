@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Личный кабинет{% endblock %}
+{% block content %}
+<h2 class="mb-4 fw-bold">Личный кабинет — {{ user.username }}</h2>
+{% if success %}
+    <div class="alert alert-success">{{ success }}</div>
+{% endif %}
+<div class="table-responsive bg-white rounded shadow-sm p-3">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+            <tr>
+                <th>№</th>
+                <th>Оборудование</th>
+                <th>Кол-во</th>
+                <th>Период аренды</th>
+                <th>Стоимость</th>
+                <th>Статус</th>
+                <th>Штрафы и заметки</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for b in bookings %}
+            <tr>
+                <td>#{{ b.id }}</td>
+                <td class="fw-semibold">{{ b.equipment.name }}</td>
+                <td>{{ b.quantity }} шт.</td>
+                <td>{{ b.start_date }} — {{ b.end_date }}</td>
+                <td>{{ "%.0f"|format(b.total_price) }} ₽</td>
+                <td>
+                    {% if b.status == 'booked' %}<span class="badge bg-info text-dark">Забронировано</span>
+                    {% elif b.status == 'issued' %}<span class="badge bg-primary">Выдано</span>
+                    {% elif b.status == 'returned' %}<span class="badge bg-success">Возвращено</span>
+                    {% elif b.status == 'overdue' %}<span class="badge bg-danger">Просрочено</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% for f in b.fines %}
+                        <span class="badge bg-danger">Штраф: {{ "%.0f"|format(f.amount) }} ₽ ({{ f.reason }})</span>
+                    {% endfor %}
+                    {% if b.condition_note %}<div class="small text-muted">{{ b.condition_note }}</div>{% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7" class="text-center text-muted py-4">У вас пока нет бронирований</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+{% block title %}Панель администратора{% endblock %}
+{% block content %}
+<h2 class="mb-4 fw-bold">Панель администратора и статистика</h2>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white shadow-sm border-0">
+            <div class="card-body">
+                <div class="small">Общая выручка от аренды</div>
+                <h3 class="fw-bold mb-0">{{ "%.0f"|format(total_revenue) }} ₽</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-danger text-white shadow-sm border-0">
+            <div class="card-body">
+                <div class="small">Начислено штрафов</div>
+                <h3 class="fw-bold mb-0">{{ "%.0f"|format(total_fines) }} ₽</h3>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-white shadow-sm border-0">
+            <div class="card-body">
+                <canvas id="revenueChart" height="110"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-dark text-white fw-bold">Добавить новое оборудование в каталог</div>
+    <div class="card-body">
+        <form method="post" action="/admin/equipment/add" enctype="multipart/form-data" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label">Название товара</label>
+                <input type="text" name="name" class="form-control" placeholder="Например: Горный велосипед" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Категория</label>
+                <select name="category" class="form-select" required>
+                    <option value="Спорт">Спорт</option>
+                    <option value="Туризм">Туризм</option>
+                    <option value="Стройка">Стройка</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Цена / сутки (₽)</label>
+                <input type="number" name="price_per_day" step="10" min="1" class="form-control" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Количество (шт.)</label>
+                <input type="number" name="total_qty" min="1" value="1" class="form-control" required>
+            </div>
+            <div class="col-md-8">
+                <label class="form-label">Изображение оборудования (PNG, JPG, WEBP)</label>
+                <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png,.webp">
+                <div class="form-text">Любое фото автоматически подгоняется под фиксированный блок карточки (200px).</div>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button type="submit" class="btn btn-success w-100">Добавить карточку</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header bg-dark text-white fw-bold">Учёт склада, ремонт и списание</div>
+    <div class="table-responsive p-3">
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Фото</th>
+                    <th>Название</th>
+                    <th>Категория</th>
+                    <th>Тариф (₽/сут)</th>
+                    <th>Всего на складе</th>
+                    <th>В ремонте / списано</th>
+                    <th>Сохранить</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in items %}
+                <tr>
+                    <form method="post" action="/admin/equipment/update/{{ item.id }}">
+                        <td>
+                            {% if item.image_url %}
+                                <img src="{{ item.image_url }}" alt="" style="width: 48px; height: 36px; object-fit: cover; border-radius: 4px;">
+                            {% else %}
+                                <span class="text-muted small">нет</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-semibold">{{ item.name }}</td>
+                        <td>{{ item.category }}</td>
+                        <td><input type="number" name="price_per_day" value="{{ item.price_per_day }}" class="form-control form-control-sm" style="width:100px"></td>
+                        <td><input type="number" name="total_qty" value="{{ item.total_qty }}" class="form-control form-control-sm" style="width:90px"></td>
+                        <td><input type="number" name="broken_qty" value="{{ item.broken_qty }}" class="form-control form-control-sm" style="width:90px"></td>
+                        <td><button type="submit" class="btn btn-sm btn-primary">Обновить</button></td>
+                    </form>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-dark text-white fw-bold">Управление пользователями и ролями</div>
+    <div class="table-responsive p-3">
+        <table class="table table-sm align-middle mb-0">
+            <thead>
+                <tr><th>ID</th><th>Логин</th><th>Текущая роль</th><th>Изменить роль</th></tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u.id }}</td>
+                    <td>{{ u.username }}</td>
+                    <td><span class="badge bg-secondary">{{ u.role }}</span></td>
+                    <td>
+                        <form method="post" action="/admin/user/role/{{ u.id }}" class="d-flex gap-2" style="max-width:260px">
+                            <select name="role" class="form-select form-select-sm">
+                                <option value="client" {% if u.role=='client' %}selected{% endif %}>client</option>
+                                <option value="manager" {% if u.role=='manager' %}selected{% endif %}>manager</option>
+                                <option value="admin" {% if u.role=='admin' %}selected{% endif %}>admin</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-outline-primary">Ок</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+const ctx = document.getElementById('revenueChart');
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: {{ chart_labels | tojson }},
+        datasets: [{
+            label: 'Выручка по категориям (₽)',
+            data: {{ chart_values | tojson }},
+            backgroundColor: ['#0d6efd', '#198754', '#ffc107']
+        }]
+    },
+    options: { plugins: { legend: { display: false } } }
+});
+</script>
+{% endblock %}

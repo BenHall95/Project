@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Вход и регистрация{% endblock %}
+{% block content %}
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+<div class="row g-4 justify-content-center">
+    <div class="col-md-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white fw-bold">Вход в систему</div>
+            <div class="card-body">
+                <form method="post" action="/login">
+                    <div class="mb-3">
+                        <label class="form-label">Логин</label>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Пароль</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Войти</button>
+                </form>
+                <hr>
+                <div class="small text-muted">
+                    <strong>Демо-аккаунты:</strong><br>
+                    Администратор: <code>admin / admin</code><br>
+                    Менеджер: <code>manager / manager</code><br>
+                    Клиент: <code>client / client</code>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-success text-white fw-bold">Регистрация клиента</div>
+            <div class="card-body">
+                <form method="post" action="/register">
+                    <div class="mb-3">
+                        <label class="form-label">Придумайте логин</label>
+                        <input type="text" name="username" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Придумайте пароль</label>
+                        <input type="password" name="password" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Зарегистрироваться</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

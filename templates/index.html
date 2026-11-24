@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}Каталог оборудования{% endblock %}
+{% block content %}
+<style>
+  .equipment-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .equipment-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 .5rem 1rem rgba(0,0,0,.12)!important;
+  }
+
+  .card-img-fixed-box {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    background-color: #f8f9fa;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+
+  .card-img-fixed-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    transition: transform 0.3s ease;
+    display: block;
+  }
+
+  .equipment-card:hover .card-img-fixed-box img {
+    transform: scale(1.04);
+  }
+
+  .card-category-tag {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    background: rgba(25, 28, 31, 0.8);
+    backdrop-filter: blur(4px);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 5px 10px;
+    border-radius: 6px;
+    letter-spacing: 0.3px;
+  }
+
+  .card-img-empty {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #868e96;
+    font-size: 0.9rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  }
+</style>
+
+<h2 class="mb-4 fw-bold">Каталог оборудования</h2>
+
+{% if error %}
+    <div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+{% if success %}
+    <div class="alert alert-success">{{ success }}</div>
+{% endif %}
+
+<form method="get" action="/" class="row g-3 mb-4 bg-white p-3 rounded shadow-sm">
+    <div class="col-md-5">
+        <input type="text" name="search" class="form-control" placeholder="Поиск по названию..." value="{{ search }}">
+    </div>
+    <div class="col-md-4">
+        <select name="category" class="form-select">
+            <option value="">Все категории</option>
+            {% for cat in categories %}
+                <option value="{{ cat }}" {% if cat == selected_category %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary w-100">Найти</button>
+        <a href="/" class="btn btn-outline-secondary">Сброс</a>
+    </div>
+</form>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for item in items %}
+    {% set available = item.total_qty - item.broken_qty %}
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 equipment-card">
+            <div class="card-img-fixed-box">
+                {% if item.image_url %}
+                    <img src="{{ item.image_url }}" alt="{{ item.name }}" loading="lazy">
+                {% else %}
+                    <div class="card-img-empty">Нет изображения</div>
+                {% endif %}
+                <span class="card-category-tag">{{ item.category }}</span>
+            </div>
+
+            <div class="card-body d-flex flex-column p-3">
+                <h5 class="card-title fw-bold text-dark mb-2">{{ item.name }}</h5>
+                <div class="small text-muted mb-3">
+                    Доступно на складе:
+                    <span class="fw-semibold {{ 'text-success' if available > 0 else 'text-danger' }}">
+                        {{ available }} из {{ item.total_qty }} шт.
+                    </span>
+                </div>
+
+                <div class="mt-auto pt-3 border-top d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fs-5 fw-bold text-primary">{{ "%.0f"|format(item.price_per_day) }} ₽</span>
+                        <span class="text-muted small">/ сутки</span>
+                    </div>
+
+                    {% if available > 0 %}
+                        <button type="button" class="btn btn-primary btn-sm px-3 fw-medium"
+                                data-bs-toggle="modal" data-bs-target="#bookModal{{ item.id }}">
+                            Забронировать
+                        </button>
+                    {% else %}
+                        <button class="btn btn-outline-secondary btn-sm px-3" disabled>Занято</button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="bookModal{{ item.id }}" tabindex="-1">
+        <div class="modal-dialog">
+            <form method="post" action="/book" class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Бронирование: {{ item.name }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="equipment_id" value="{{ item.id }}">
+                    <div class="mb-3">
+                        <label class="form-label">Количество (макс. {{ available }})</label>
+                        <input type="number" name="quantity" class="form-control qty-input" min="1" max="{{ available }}" value="1" data-price="{{ item.price_per_day }}" data-id="{{ item.id }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Дата начала</label>
+                        <input type="date" name="start_date" class="form-control start-input" min="{{ today }}" value="{{ today }}" data-id="{{ item.id }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Дата окончания</label>
+                        <input type="date" name="end_date" class="form-control end-input" min="{{ today }}" value="{{ today }}" data-id="{{ item.id }}" required>
+                    </div>
+                    <div class="alert alert-info mb-0">
+                        Расчётная стоимость: <strong id="calcPrice{{ item.id }}">{{ "%.0f"|format(item.price_per_day) }} ₽</strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-success">Подтвердить бронь</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.querySelectorAll('.qty-input, .start-input, .end-input').forEach(el => {
+    el.addEventListener('change', function() {
+        const id = this.dataset.id;
+        const modal = document.getElementById('bookModal' + id);
+        const qtyInput = modal.querySelector('.qty-input');
+        const price = parseFloat(qtyInput.dataset.price);
+        const qty = parseInt(qtyInput.value) || 1;
+        const start = new Date(modal.querySelector('.start-input').value);
+        const end = new Date(modal.querySelector('.end-input').value);
+        const diffDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        const total = diffDays > 0 ? diffDays * price * qty : 0;
+        document.getElementById('calcPrice' + id).textContent = total + ' ₽';
+    });
+});
+</script>
+{% endblock %}
